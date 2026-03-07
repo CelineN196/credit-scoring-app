@@ -26,13 +26,10 @@ except Exception as e:
 # 4. Cấu hình CORS for Deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Local development
-        "http://localhost:3001",  # Alternative local port
-        "https://*.vercel.app",    # Vercel deployment (wildcard for all Vercel apps)
-    ],
-    allow_methods=["GET", "POST"],
+    allow_origins=["*"],  # Allow all origins for development/debugging
+    allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 # 5. Schema 10 trường chuẩn Phase 2/4
