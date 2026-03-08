@@ -5,23 +5,56 @@ export default function Stats() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const res = await fetch(`${apiUrl}/applications`);
+      if (!res.ok) throw new Error('Failed to fetch data');
+      const applications = await res.json();
+      setData(applications);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-        const res = await fetch(`${apiUrl}/applications`);
-        if (!res.ok) throw new Error('Failed to fetch data');
-        const applications = await res.json();
-        setData(applications);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
+
+  // Listen for statistics updates
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'statsLastUpdate') {
+        fetchData();
+      }
+    };
+
+    // Check for updates on component mount/focus
+    const checkForUpdates = () => {
+      const currentUpdate = localStorage.getItem('statsLastUpdate');
+      if (currentUpdate !== lastUpdate) {
+        setLastUpdate(currentUpdate);
+        fetchData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', checkForUpdates);
+
+    // Initial check
+    checkForUpdates();
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', checkForUpdates);
+    };
+  }, [lastUpdate]);
 
   // Calculate comprehensive statistics
   const stats = data.length > 0 ? {

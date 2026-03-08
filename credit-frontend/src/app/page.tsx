@@ -76,6 +76,9 @@ export default function Home() {
         const historyData = await historyRes.json();
         setHistory(historyData);
       }
+      
+      // Trigger statistics update
+      localStorage.setItem('statsLastUpdate', Date.now().toString());
     } catch (err: any) {
       setError(err.message || 'An error occurred while processing your request');
       console.error('Submit error:', err);
