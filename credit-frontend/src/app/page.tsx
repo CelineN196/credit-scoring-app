@@ -22,6 +22,22 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Clean label mapping for professional UI
+  const labelMap: { [key: string]: string } = {
+    DebtRatio: 'DEBT RATIO (%)',
+    MonthlyIncome: 'MONTHLY INCOME ($)',
+    NumberOfOpenCreditLinesAndLoans: 'OPEN CREDIT LINES',
+    NumberOfTime30_59DaysPastDueNotWorse: 'LATE PAYMENTS (30-59 DAYS)',
+    NumberOfTime60_89DaysPastDueNotWorse: 'LATE PAYMENTS (60-89 DAYS)',
+    NumberOfTimes90DaysLate: 'SERIOUS DELINQUENCY (90+ DAYS)',
+    NumberRealEstateLoansOrLines: 'REAL ESTATE LOANS',
+    NumberOfDependents: 'DEPENDENTS',
+    age: 'AGE',
+    employment_years: 'EMPLOYMENT YEARS',
+    loan_amount: 'LOAN AMOUNT ($)',
+    loan_term: 'LOAN TERM (MONTHS)'
+  };
+
   // animate score when a new result arrives
   useEffect(() => {
     if (result) {
@@ -104,12 +120,12 @@ export default function Home() {
             </div>
             {Object.keys(formData).map((key) => (
               <div key={key} className="space-y-1">
-                <label className="text-[9px] font-bold text-slate-600 dark:text-slate-500 uppercase ml-1">
-                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-500 uppercase tracking-widest ml-1">
+                  {labelMap[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
                 </label>
                 <input required type="number" step="any" value={(formData as any)[key]} 
                   onChange={(e) => setFormData({...formData, [key]: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm outline-none focus:border-indigo-500 transition-all font-bold" />
+                  className="w-full h-12 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 text-sm outline-none focus:border-indigo-500 transition-all font-bold" />
               </div>
             ))}
             <button 
