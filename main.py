@@ -16,12 +16,42 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL else None
 
-# 3. Load Model AI (Phải có đủ 10 trường)
-try:
-    model = joblib.load("credit_model.pkl")
-    print("✅ Model AI đã sẵn sàng!")
-except Exception as e:
-    print(f"❌ Lỗi nạp model: {e}")
+# 3. Load Multiple ML Models for Comparison
+model_xgb = None
+model_rf = None
+
+@app.on_event("startup")
+async def load_models():
+    """Load both XGBoost and Random Forest models on server startup"""
+    global model_xgb, model_rf
+    
+    models_loaded = 0
+    
+    # Load XGBoost Model (credit_model.pkl is the XGBoost model)
+    try:
+        model_xgb = joblib.load("credit_model.pkl")
+        models_loaded += 1
+        print("✅ XGBoost model loaded successfully!")
+    except FileNotFoundError:
+        print(f"❌ Error: credit_model.pkl not found")
+    except Exception as e:
+        print(f"❌ Error loading XGBoost model: {e}")
+    
+    # Load Random Forest Model
+    try:
+        model_rf = joblib.load("credit_model_rf.pkl")
+        models_loaded += 1
+        print("✅ Random Forest model loaded successfully!")
+    except FileNotFoundError:
+        print(f"❌ Error: credit_model_rf.pkl not found")
+    except Exception as e:
+        print(f"❌ Error loading Random Forest model: {e}")
+    
+    # Print final status
+    if models_loaded == 2:
+        print("✅✅ Both models are ready for predictions!")
+    else:
+        print(f"⚠️  Only {models_loaded}/2 models loaded. Server will continue but predictions may be limited.")
 
 # 4. Cấu hình CORS for Deployment
 app.add_middleware(
@@ -58,6 +88,49 @@ class CreditData(BaseModel):
 
     model_config = {"extra": "allow"}
 
+# Define feature sets for each model type
+# Both models use the same 10 features; this structure allows for future flexibility
+MODEL_FEATURES = {
+    "xgboost": [
+        'income', 'age', 'employment_years', 'loan_amount', 'loan_term',
+        'credit_history_length', 'num_credit_lines', 'num_delinquencies',
+        'debt_to_income_ratio', 'savings_balance'
+    ],
+    "random_forest": [
+        'income', 'age', 'employment_years', 'loan_amount', 'loan_term',
+        'credit_history_length', 'num_credit_lines', 'num_delinquencies',
+        'debt_to_income_ratio', 'savings_balance'
+    ]
+}
+
+def get_model_features(model_type: str = "xgboost") -> list:
+    """Get the feature list for a specific model type"""
+    return MODEL_FEATURES.get(model_type.lower(), MODEL_FEATURES["xgboost"])
+
+def prepare_model_input(data: CreditData, model_type: str = "xgboost") -> pd.DataFrame:
+    """
+    Prepare input data for a specific model type.
+    Ensures correct feature order and handles model-specific transformations.
+    """
+    features = get_model_features(model_type)
+    
+    # Create input data dictionary with all required features
+    input_dict = {
+        'income': data.income,
+        'age': data.age,
+        'employment_years': data.employment_years,
+        'loan_amount': data.loan_amount,
+        'loan_term': data.loan_term,
+        'credit_history_length': data.credit_history_length,
+        'num_credit_lines': data.num_credit_lines,
+        'num_delinquencies': data.num_delinquencies,
+        'debt_to_income_ratio': data.debt_to_income_ratio,
+        'savings_balance': data.savings_balance
+    }
+    
+    # Return DataFrame with features in correct order
+    return pd.DataFrame([{feature: input_dict[feature] for feature in features}])
+
 def normalize_data(data: CreditData) -> CreditData:
     """Normalize Kaggle fields to standard fields if standard fields are empty"""
     if data.income == 0 and data.MonthlyIncome is not None:
@@ -82,13 +155,34 @@ def normalize_data(data: CreditData) -> CreditData:
 
 @app.get("/health")
 async def health_check():
-    model_status = "loaded" if 'model' in globals() else "not loaded"
+    model_xgb_status = "loaded" if model_xgb is not None else "not loaded"
+    model_rf_status = "loaded" if model_rf is not None else "not loaded"
     db_status = "connected" if supabase else "not connected"
-    return {"status": "healthy", "model": model_status, "database": db_status}
+    return {
+        "status": "healthy",
+        "model_xgb": model_xgb_status,
+        "model_rf": model_rf_status,
+        "database": db_status
+    }
 
 @app.post("/predict")
-async def predict(data: CreditData):
+async def predict(data: CreditData, model_type: str = "xgboost"):
     try:
+        # Normalize model_type and select the appropriate model
+        model_type = model_type.lower().strip()
+        
+        # Map model selection
+        model_mapping = {
+            "xgboost": model_xgb,
+            "random_forest": model_rf,
+            "rf": model_rf,
+        }
+        
+        # Select model, default to xgboost if invalid type
+        selected_model = model_mapping.get(model_type, model_xgb)
+        if model_type not in model_mapping:
+            model_type = "xgboost"  # Default to xgboost
+        
         # Normalize Kaggle fields to standard fields
         data = normalize_data(data)
         
@@ -134,25 +228,36 @@ async def predict(data: CreditData):
                 "approved": False,
                 "risk_level": risk_level,
                 "recommendation": recommendation,
-                "rejection_reasons": rejection_reasons
+                "rejection_reasons": rejection_reasons,
+                "model_used": model_type
             }
 
         # ===== ML MODEL PREDICTION =====
-        # Create input data with exactly 10 features in the required order
-        input_data = {
-            'income': data.income,
-            'age': data.age,
-            'employment_years': data.employment_years,
-            'loan_amount': data.loan_amount,
-            'loan_term': data.loan_term,
-            'credit_history_length': data.credit_history_length,
-            'num_credit_lines': data.num_credit_lines,
-            'num_delinquencies': data.num_delinquencies,
-            'debt_to_income_ratio': data.debt_to_income_ratio,
-            'savings_balance': data.savings_balance
-        }
-        input_df = pd.DataFrame([input_data])
-        prob = float(model.predict_proba(input_df)[0][1])
+        # Prepare input data with correct features for the selected model
+        input_df = prepare_model_input(data, model_type)
+        
+        # Get predictions from both models for comparison
+        prob_xgb = None
+        prob_rf = None
+        
+        if model_xgb:
+            input_df_xgb = prepare_model_input(data, "xgboost")
+            prob_xgb = float(model_xgb.predict_proba(input_df_xgb)[0][1])
+        if model_rf:
+            input_df_rf = prepare_model_input(data, "random_forest")
+            prob_rf = float(model_rf.predict_proba(input_df_rf)[0][1])
+        
+        # Use selected model for final prediction
+        if selected_model is not None:
+            prob = float(selected_model.predict_proba(input_df)[0][1])
+        elif prob_xgb is not None:
+            prob = prob_xgb
+            model_type = "xgboost"
+        elif prob_rf is not None:
+            prob = prob_rf
+            model_type = "random_forest"
+        else:
+            raise HTTPException(status_code=500, detail="No models available for prediction")
 
         # ===== ENHANCED SCORING LOGIC =====
         final_score = prob
@@ -209,13 +314,69 @@ async def predict(data: CreditData):
                 "risk_level": risk_level
             }).execute()
 
+        # Calculate ensemble average when both models are available
+        ensemble_average = None
+        if prob_xgb is not None and prob_rf is not None:
+            ensemble_average = (prob_xgb + prob_rf) / 2
+
         return {
             "approval_score": final_score,
             "approved": approved,
             "risk_level": risk_level,
             "recommendation": recommendation,
-            "rejection_reasons": risk_adjustments if not approved else []
+            "rejection_reasons": risk_adjustments if not approved else [],
+            "model_used": model_type,
+            "model_scores": {
+                "xgboost": prob_xgb,
+                "random_forest": prob_rf,
+                "ensemble_average": ensemble_average
+            }
         }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict-compare")
+async def predict_compare(data: CreditData):
+    """
+    Compare predictions from both XGBoost and Random Forest models side-by-side.
+    Returns raw predictions and probabilities from both models for direct comparison.
+    """
+    try:
+        # Normalize Kaggle fields to standard fields
+        data = normalize_data(data)
+        
+        # Initialize response
+        comparison = {
+            "xgboost": None,
+            "random_forest": None
+        }
+        
+        # Get XGBoost predictions
+        if model_xgb:
+            input_df_xgb = prepare_model_input(data, "xgboost")
+            prediction_xgb = int(model_xgb.predict(input_df_xgb)[0])
+            probability_xgb = float(model_xgb.predict_proba(input_df_xgb)[0][1])
+            comparison["xgboost"] = {
+                "prediction": prediction_xgb,
+                "probability": probability_xgb
+            }
+        
+        # Get Random Forest predictions
+        if model_rf:
+            input_df_rf = prepare_model_input(data, "random_forest")
+            prediction_rf = int(model_rf.predict(input_df_rf)[0])
+            probability_rf = float(model_rf.predict_proba(input_df_rf)[0][1])
+            comparison["random_forest"] = {
+                "prediction": prediction_rf,
+                "probability": probability_rf
+            }
+        
+        # Ensure at least one model is available
+        if comparison["xgboost"] is None and comparison["random_forest"] is None:
+            raise HTTPException(status_code=500, detail="No models available for comparison")
+        
+        return comparison
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
