@@ -340,7 +340,7 @@ async def predict(data: CreditData, model_type: str = "xgboost"):
 async def predict_compare(data: CreditData):
     """
     Compare predictions from both XGBoost and Random Forest models side-by-side.
-    Returns raw predictions and probabilities from both models for direct comparison.
+    Returns predictions, probabilities, and ensemble average from both models.
     """
     try:
         # Normalize Kaggle fields to standard fields
@@ -349,8 +349,11 @@ async def predict_compare(data: CreditData):
         # Initialize response
         comparison = {
             "xgboost": None,
-            "random_forest": None
+            "random_forest": None,
+            "ensemble_average": 0.0
         }
+        
+        probabilities = []
         
         # Get XGBoost predictions
         if model_xgb:
@@ -358,9 +361,10 @@ async def predict_compare(data: CreditData):
             prediction_xgb = int(model_xgb.predict(input_df_xgb)[0])
             probability_xgb = float(model_xgb.predict_proba(input_df_xgb)[0][1])
             comparison["xgboost"] = {
-                "prediction": prediction_xgb,
+                "approved": bool(prediction_xgb),
                 "probability": probability_xgb
             }
+            probabilities.append(probability_xgb)
         
         # Get Random Forest predictions
         if model_rf:
@@ -368,9 +372,14 @@ async def predict_compare(data: CreditData):
             prediction_rf = int(model_rf.predict(input_df_rf)[0])
             probability_rf = float(model_rf.predict_proba(input_df_rf)[0][1])
             comparison["random_forest"] = {
-                "prediction": prediction_rf,
+                "approved": bool(prediction_rf),
                 "probability": probability_rf
             }
+            probabilities.append(probability_rf)
+        
+        # Calculate ensemble average
+        if probabilities:
+            comparison["ensemble_average"] = float(sum(probabilities) / len(probabilities))
         
         # Ensure at least one model is available
         if comparison["xgboost"] is None and comparison["random_forest"] is None:

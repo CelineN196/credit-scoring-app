@@ -1,6 +1,285 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { animate } from 'framer-motion';
+import { motion, animate } from 'framer-motion';
+import { CheckCircle, AlertTriangle, AlertCircle, TrendingUp, Info, Loader2, BarChart3 } from 'lucide-react';
+
+// Model Comparison Component (for /predict-compare endpoint)
+const ModelComparisonCard = ({
+  xgboost,
+  randomForest,
+  ensembleAverage
+}: {
+  xgboost: { approved: boolean; probability: number };
+  randomForest: { approved: boolean; probability: number };
+  ensembleAverage: number;
+}) => {
+  const hasConflict = xgboost.approved !== randomForest.approved;
+  const finalVerdict = ensembleAverage > 0.5;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+    >
+      <div className="flex items-center gap-2 mb-6">
+        <BarChart3 className="w-5 h-5 text-blue-600" />
+        <h3 className="text-lg font-semibold text-gray-900">AI Model Comparison</h3>
+      </div>
+
+      {hasConflict && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg"
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <span className="text-sm font-medium text-amber-800">Model Conflict Detected</span>
+          </div>
+          <p className="text-xs text-amber-700 mt-1">
+            Models disagree on this application. Ensemble average used for final decision.
+          </p>
+        </motion.div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* XGBoost Model */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">XGBoost Model</span>
+              <div className="group relative">
+                <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  Boosting Algorithm - Combines weak learners sequentially
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                xgboost.approved
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {xgboost.approved ? 'Approved' : 'Rejected'}
+              </span>
+              <span className="text-sm text-gray-600">
+                {(xgboost.probability * 100).toFixed(2)}%
+              </span>
+            </div>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${xgboost.probability * 100}%` }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className={`h-2 rounded-full ${
+                xgboost.approved ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            />
+          </div>
+        </div>
+
+        {/* Random Forest Model */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Random Forest Model</span>
+              <div className="group relative">
+                <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  Bagging Algorithm - Combines multiple decision trees
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                randomForest.approved
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {randomForest.approved ? 'Approved' : 'Rejected'}
+              </span>
+              <span className="text-sm text-gray-600">
+                {(randomForest.probability * 100).toFixed(2)}%
+              </span>
+            </div>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${randomForest.probability * 100}%` }}
+              transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+              className={`h-2 rounded-full ${
+                randomForest.approved ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Ensemble Average */}
+      <div className="border-t pt-4 mt-4">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-900">Ensemble Average</span>
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                finalVerdict
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {finalVerdict ? 'Approved' : 'Rejected'}
+              </span>
+              <span className="text-sm font-semibold text-gray-900">
+                {(ensembleAverage * 100).toFixed(2)}%
+              </span>
+            </div>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${ensembleAverage * 100}%` }}
+              transition={{ duration: 1, ease: "easeOut", delay: 0.4 }}
+              className={`h-3 rounded-full ${
+                finalVerdict ? 'bg-green-600' : 'bg-red-600'
+              }`}
+            />
+          </div>
+          <p className="text-xs text-gray-600 text-center">
+            Final decision based on average of both models
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Loading Skeleton Component
+const LoadingSkeleton = () => (
+  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 animate-pulse">
+    <div className="flex items-center gap-2 mb-6">
+      <div className="w-5 h-5 bg-gray-300 rounded"></div>
+      <div className="h-4 bg-gray-300 rounded w-48"></div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="h-4 bg-gray-300 rounded w-32"></div>
+          <div className="h-6 bg-gray-300 rounded w-20"></div>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2"></div>
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="h-4 bg-gray-300 rounded w-32"></div>
+          <div className="h-6 bg-gray-300 rounded w-20"></div>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2"></div>
+      </div>
+    </div>
+    <div className="border-t pt-4 mt-4">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="h-4 bg-gray-300 rounded w-32"></div>
+          <div className="h-6 bg-gray-300 rounded w-20"></div>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-3"></div>
+      </div>
+    </div>
+  </div>
+);
+
+// Model Verdict Section Component
+function ModelVerdictSection({ xgboostScore, randomForestScore }: { xgboostScore: number; randomForestScore: number }) {
+  const xgboostApproves = xgboostScore > 0.65;
+  const randomForestApproves = randomForestScore > 0.65;
+  const modelsAgree = xgboostApproves === randomForestApproves;
+  const disagreementLevel = Math.abs(xgboostScore - randomForestScore);
+
+  return (
+    <div className={`p-8 rounded-[2rem] border-2 backdrop-blur-sm transition-all ${
+      modelsAgree 
+        ? 'bg-blue-500/5 border-blue-500/50 shadow-[0_0_40px_rgba(59,130,246,0.1)]'
+        : 'bg-amber-500/5 border-amber-500/50 shadow-[0_0_40px_rgba(217,119,6,0.1)]'
+    }`}>
+      <div className="flex items-center gap-3 mb-6">
+        {modelsAgree ? (
+          <CheckCircle className="w-8 h-8 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+        ) : (
+          <AlertCircle className="w-8 h-8 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+        )}
+        <h3 className={`text-2xl font-black italic tracking-tighter ${
+          modelsAgree 
+            ? 'text-blue-700 dark:text-blue-300' 
+            : 'text-amber-700 dark:text-amber-300'
+        }`}>
+          MODELS VERDICT
+        </h3>
+      </div>
+
+      <div className="space-y-4">
+        {modelsAgree ? (
+          <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+            <p className="text-blue-800 dark:text-blue-200 font-bold text-center">
+              ✓ Models in complete agreement
+            </p>
+            <p className="text-blue-700 dark:text-blue-300 text-sm text-center mt-2">
+              Both models recommend to <span className={xgboostApproves ? 'text-emerald-600 dark:text-emerald-400 font-black' : 'text-rose-600 dark:text-rose-400 font-black'}>
+                {xgboostApproves ? 'APPROVE' : 'REJECT'}
+              </span> this application
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <p className="text-amber-800 dark:text-amber-200 font-black">
+                  HIGH UNCERTAINTY
+                </p>
+              </div>
+              <p className="text-amber-700 dark:text-amber-300 text-sm">
+                Manual Review Recommended - Models disagree by {(disagreementLevel * 100).toFixed(1)}%
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className={`p-3 rounded-lg border ${
+                xgboostApproves 
+                  ? 'bg-emerald-500/10 border-emerald-500/30' 
+                  : 'bg-rose-500/10 border-rose-500/30'
+              }`}>
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">XGBoost Says:</p>
+                <p className={`text-lg font-black ${
+                  xgboostApproves 
+                    ? 'text-emerald-700 dark:text-emerald-300' 
+                    : 'text-rose-700 dark:text-rose-300'
+                }`}>
+                  {xgboostApproves ? '✓ APPROVE' : '✗ REJECT'}
+                </p>
+              </div>
+              <div className={`p-3 rounded-lg border ${
+                randomForestApproves 
+                  ? 'bg-emerald-500/10 border-emerald-500/30' 
+                  : 'bg-rose-500/10 border-rose-500/30'
+              }`}>
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">Random Forest Says:</p>
+                <p className={`text-lg font-black ${
+                  randomForestApproves 
+                    ? 'text-emerald-700 dark:text-emerald-300' 
+                    : 'text-rose-700 dark:text-rose-300'
+                }`}>
+                  {randomForestApproves ? '✓ APPROVE' : '✗ REJECT'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [formData, setFormData] = useState({
@@ -18,7 +297,9 @@ export default function Home() {
     loan_term: '24'
   });
   const [result, setResult] = useState<any>(null);
-  const [displayScore, setDisplayScore] = useState(0);  const [history, setHistory] = useState<any[]>([]);
+  const [displayScore, setDisplayScore] = useState(0);
+  const [comparisonData, setComparisonData] = useState<any>(null);
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,10 +354,13 @@ export default function Home() {
     
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-      const res = await fetch(`${apiUrl}/predict`, {
+      const formPayload = Object.fromEntries(Object.entries(formData).map(([k, v]) => [k, Number(v)]));
+      
+      // Call /predict-compare endpoint (now the primary endpoint)
+      const res = await fetch(`${apiUrl}/predict-compare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.fromEntries(Object.entries(formData).map(([k, v]) => [k, Number(v)]))),
+        body: JSON.stringify(formPayload),
       });
       
       if (!res.ok) {
@@ -84,7 +368,38 @@ export default function Home() {
       }
       
       const data = await res.json();
-      setResult(data);
+      setComparisonData(data);
+      
+      // Also call /predict for backward compatibility (to get the full response with recommendations)
+      try {
+        const predictRes = await fetch(`${apiUrl}/predict`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formPayload),
+        });
+        
+        if (predictRes.ok) {
+          const predictData = await predictRes.json();
+          setResult(predictData);
+        }
+      } catch (predictErr) {
+        console.log('Predict endpoint not available, using comparison data only.');
+        // Create a basic result from comparison data
+        const ensembleAverage = (data.xgboost.probability + data.random_forest.probability) / 2;
+        setResult({
+          approval_score: ensembleAverage,
+          approved: ensembleAverage > 0.5,
+          risk_level: ensembleAverage > 0.8 ? 'Low' : ensembleAverage > 0.5 ? 'Medium' : 'High',
+          recommendation: ensembleAverage > 0.5 ? 'Application approved based on ensemble average.' : 'Application rejected based on ensemble average.',
+          rejection_reasons: [],
+          model_used: 'ensemble',
+          model_scores: {
+            xgboost: data.xgboost.probability,
+            random_forest: data.random_forest.probability,
+            ensemble_average: ensembleAverage
+          }
+        });
+      }
       
       // Fetch updated history
       const historyRes = await fetch(`${apiUrl}/applications`);
@@ -193,6 +508,132 @@ export default function Home() {
             )}
           </div>
         </div>
+
+        {/* MODEL COMPARISON SECTION */}
+        {result && result.model_scores && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-black tracking-tighter italic text-slate-900 dark:text-white uppercase">AI Model Comparison</h2>
+            
+            {/* Side-by-Side Model Scores */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* XGBoost Model */}
+              <div className="bg-white dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-sm hover:shadow-lg transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-black italic tracking-tight text-slate-900 dark:text-white">XGBoost</h3>
+                    <div className="group relative">
+                      <Info className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                        Boosting Algorithm - Combines weak learners sequentially
+                      </div>
+                    </div>
+                  </div>
+                  <TrendingUp className="w-6 h-6 text-blue-500" />
+                </div>
+                
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Confidence Score</span>
+                    <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{(result.model_scores.xgboost * 100).toFixed(2)}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${result.model_scores.xgboost * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className={`p-3 rounded-lg flex items-center gap-2 ${result.model_scores.xgboost > 0.65 ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-rose-500/10 border border-rose-500/30'}`}>
+                    {result.model_scores.xgboost > 0.65 ? (
+                      <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+                    )}
+                    <span className={`text-sm font-bold ${result.model_scores.xgboost > 0.65 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
+                      {result.model_scores.xgboost > 0.65 ? 'APPROVE' : 'REJECT'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Random Forest Model */}
+              <div className="bg-white dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-sm hover:shadow-lg transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-black italic tracking-tight text-slate-900 dark:text-white">Random Forest</h3>
+                    <div className="group relative">
+                      <Info className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                        Bagging Algorithm - Combines multiple decision trees
+                      </div>
+                    </div>
+                  </div>
+                  <TrendingUp className="w-6 h-6 text-purple-500" />
+                </div>
+                
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Confidence Score</span>
+                    <span className="text-2xl font-black text-purple-600 dark:text-purple-400">{(result.model_scores.random_forest * 100).toFixed(2)}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-purple-500 to-purple-400 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${result.model_scores.random_forest * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className={`p-3 rounded-lg flex items-center gap-2 ${result.model_scores.random_forest > 0.65 ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-rose-500/10 border border-rose-500/30'}`}>
+                    {result.model_scores.random_forest > 0.65 ? (
+                      <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+                    )}
+                    <span className={`text-sm font-bold ${result.model_scores.random_forest > 0.65 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
+                      {result.model_scores.random_forest > 0.65 ? 'APPROVE' : 'REJECT'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* VERDICT SECTION */}
+            <ModelVerdictSection 
+              xgboostScore={result.model_scores.xgboost}
+              randomForestScore={result.model_scores.random_forest}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* MODEL COMPARISON SECTION (from /predict-compare endpoint) */}
+      <div className="mt-20 border-t-2 border-slate-200 dark:border-slate-800 pt-20">
+        {loading ? (
+          <LoadingSkeleton />
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-800">Server Connection Error</h3>
+                <p className="text-red-700 mt-1">{error}</p>
+                <p className="text-sm text-red-600 mt-2">
+                  Please check if the backend server is running and try again.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : comparisonData ? (
+          <ModelComparisonCard
+            xgboost={comparisonData.xgboost}
+            randomForest={comparisonData.random_forest}
+            ensembleAverage={comparisonData.ensemble_average}
+          />
+        ) : null}
       </div>
     </div>
   );
