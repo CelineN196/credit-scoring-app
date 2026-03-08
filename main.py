@@ -138,8 +138,20 @@ async def predict(data: CreditData):
             }
 
         # ===== ML MODEL PREDICTION =====
-        payload = data.model_dump(exclude_none=True)
-        input_df = pd.DataFrame([payload])
+        # Create input data with exactly 10 features in the required order
+        input_data = {
+            'income': data.income,
+            'age': data.age,
+            'employment_years': data.employment_years,
+            'loan_amount': data.loan_amount,
+            'loan_term': data.loan_term,
+            'credit_history_length': data.credit_history_length,
+            'num_credit_lines': data.num_credit_lines,
+            'num_delinquencies': data.num_delinquencies,
+            'debt_to_income_ratio': data.debt_to_income_ratio,
+            'savings_balance': data.savings_balance
+        }
+        input_df = pd.DataFrame([input_data])
         prob = float(model.predict_proba(input_df)[0][1])
 
         # ===== ENHANCED SCORING LOGIC =====
