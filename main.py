@@ -397,3 +397,6 @@ async def get_applications(limit: int = 1000, offset: int = 0):
     # Get all records without range limitation for full dataset
     result = supabase.table("applications").select("*", count="exact").order("created_at", desc=True).execute()
     return result.data
+@app.get("/health")
+def health_check():
+    return {"status": "online", "message": "I am awake!"}
