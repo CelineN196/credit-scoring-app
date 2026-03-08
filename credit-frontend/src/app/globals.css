@@ -1,3 +1,18 @@
 @import "tailwindcss";
 
-/* All styling is now handled by Tailwind CSS classes - no CSS variables needed */
+
+@theme {
+  /* Đây là cách v4 định nghĩa darkMode qua class */
+  --variant-dark: .dark &;
+}
+
+/* Force nền trắng nếu không có class dark */
+:root {
+  background-color: white;
+  color: #0f172a; /* Slate-900 */
+}
+
+.dark {
+  background-color: #05070a;
+  color: white;
+}
