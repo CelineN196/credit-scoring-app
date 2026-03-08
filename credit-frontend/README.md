@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💻 VTI CREDIT AI PRO - Frontend Dashboard
 
-## Getting Started
+Giao diện phân tích và quản lý tín dụng hiện đại, tích hợp AI để dự đoán rủi ro tài chính.
 
-First, run the development server:
+## ✨ Tính năng chính
+- **AI Analyzer**: Form nhập liệu thông minh với nhãn (labels) đã được tối ưu hóa cho người dùng.
+- **Credit History**: Hiển thị danh sách 50+ hồ sơ từ Supabase với chế độ xem chi tiết.
+- **Statistics Dashboard**: Biểu đồ phân tích rủi ro, tỷ lệ duyệt và xu hướng tín dụng theo thời gian.
+- **Dark/Light Mode**: Giao diện Slate & Indigo chuyên nghiệp, tự động thích ứng theo hệ thống.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🛠️ Công nghệ sử dụng
+- **Next.js 14+**: App Router cho hiệu suất tối ưu.
+- **Tailwind CSS**: Styling giao diện hiện đại, sạch sẽ.
+- **Lucide React**: Hệ thống icon đồng nhất.
+- **Vercel**: Nền tảng triển khai (Deployment).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📥 Hướng dẫn chạy Local
+1. Di chuyển vào thư mục: `cd credit-frontend`
+2. Cài đặt thư viện: `npm install`
+3. Cấu hình biến môi trường:
+   - Tạo file `.env.local`
+   - Thêm dòng: `NEXT_PUBLIC_API_URL=https://your-api.onrender.com` (Thay bằng link Render của bạn).
+4. Chạy môi trường phát triển: `npm run dev`
+5. Truy cập: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🌐 Production URL
+- **Frontend**: [https://credit-scoring-app.vercel.app/]

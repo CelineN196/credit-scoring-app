@@ -221,7 +221,9 @@ async def predict(data: CreditData):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/applications")
-async def get_applications(limit: int = 10, offset: int = 0):
+async def get_applications(limit: int = 1000, offset: int = 0):
     if not supabase:
         return []
-    return supabase.table("applications").select("*").order("created_at", desc=True).range(offset, offset + limit - 1).execute().data
+    # Get all records without range limitation for full dataset
+    result = supabase.table("applications").select("*", count="exact").order("created_at", desc=True).execute()
+    return result.data
