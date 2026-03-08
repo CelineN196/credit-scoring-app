@@ -1,18 +1,29 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Đây là cách v4 định nghĩa darkMode qua class */
-  --variant-dark: .dark &;
+  /* Khai báo lại các màu để đảm bảo Tailwind v4 nhận diện đúng */
+  --color-background: white;
+  --color-foreground: #0f172a;
 }
 
-/* Force nền trắng nếu không có class dark */
+/* Đảm bảo nền luôn thay đổi theo class .dark */
 :root {
   background-color: white;
-  color: #0f172a; /* Slate-900 */
+  color: #0f172a;
 }
 
 .dark {
   background-color: #05070a;
-  color: white;
+  color: #f8fafc;
+}
+
+/* Fix lỗi hydration lấp lánh khi đổi màu */
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
