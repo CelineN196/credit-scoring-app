@@ -3,16 +3,15 @@ import { useState, useEffect } from 'react';
 import { motion, animate } from 'framer-motion';
 import { CheckCircle, AlertTriangle, AlertCircle, TrendingUp, Info, Loader2, BarChart3 } from 'lucide-react';
 
-// Model Comparison Component (for /predict-compare endpoint)
+// Model Comparison Component (for model_scores data)
 const ModelComparisonCard = ({
-  xgboost,
-  randomForest,
-  ensembleAverage
+  modelScores
 }: {
-  xgboost: { approved: boolean; probability: number };
-  randomForest: { approved: boolean; probability: number };
-  ensembleAverage: number;
+  modelScores: { xgboost: number; random_forest: number; ensemble_average: number };
 }) => {
+  const xgboost = { approved: modelScores.xgboost > 0.5, probability: modelScores.xgboost };
+  const randomForest = { approved: modelScores.random_forest > 0.5, probability: modelScores.random_forest };
+  const ensembleAverage = modelScores.ensemble_average;
   const hasConflict = xgboost.approved !== randomForest.approved;
   const finalVerdict = ensembleAverage > 0.5;
 
@@ -411,7 +410,13 @@ export default function Home() {
       // Trigger statistics update
       localStorage.setItem('statsLastUpdate', Date.now().toString());
     } catch (err: any) {
-      setError(err.message || 'An error occurred while processing your request');
+      const errorMessage = err.message || 'An error occurred while processing your request';
+      // Check if it's a connection/server startup error
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('500')) {
+        setError('Server is starting up, please try again in a moment');
+      } else {
+        setError(errorMessage);
+      }
       console.error('Submit error:', err);
     } finally {
       setLoading(false);
@@ -510,7 +515,7 @@ export default function Home() {
         </div>
 
         {/* MODEL COMPARISON SECTION */}
-        {result && result.model_scores && (
+        {result && result.model_scores && (!result.rejection_reasons || result.rejection_reasons.length === 0) && (
           <div className="space-y-6">
             <h2 className="text-2xl font-black tracking-tighter italic text-slate-900 dark:text-white uppercase">AI Model Comparison</h2>
             
@@ -613,25 +618,59 @@ export default function Home() {
       {/* MODEL COMPARISON SECTION (from /predict-compare endpoint) */}
       <div className="mt-20 border-t-2 border-slate-200 dark:border-slate-800 pt-20">
         {loading ? (
-          <LoadingSkeleton />
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-center gap-3">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <span className="text-lg font-semibold text-gray-900">Processing your request...</span>
+            </div>
+            <p className="text-center text-gray-600 mt-2">Please wait while we analyze your financial data</p>
+          </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+          <div className={`border rounded-xl p-6 ${error === 'Server is starting up, please try again in a moment' ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
             <div className="flex items-center gap-3">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
+              {error === 'Server is starting up, please try again in a moment' ? (
+                <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
+              ) : (
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              )}
               <div>
-                <h3 className="text-lg font-semibold text-red-800">Server Connection Error</h3>
-                <p className="text-red-700 mt-1">{error}</p>
-                <p className="text-sm text-red-600 mt-2">
-                  Please check if the backend server is running and try again.
-                </p>
+                <h3 className={`text-lg font-semibold ${error === 'Server is starting up, please try again in a moment' ? 'text-amber-800' : 'text-red-800'}`}>
+                  {error === 'Server is starting up, please try again in a moment' ? 'Server Starting Up' : 'Server Connection Error'}
+                </h3>
+                <p className={`mt-1 ${error === 'Server is starting up, please try again in a moment' ? 'text-amber-700' : 'text-red-700'}`}>{error}</p>
+                {error !== 'Server is starting up, please try again in a moment' && (
+                  <p className="text-sm text-red-600 mt-2">
+                    Please check if the backend server is running and try again.
+                  </p>
+                )}
               </div>
             </div>
           </div>
+        ) : result && result.rejection_reasons && result.rejection_reasons.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gray-50 border border-gray-200 rounded-xl p-6"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-5 h-5 text-gray-600" />
+              <h3 className="text-lg font-semibold text-gray-900">AI Analysis Skipped</h3>
+            </div>
+            <p className="text-gray-700">
+              AI Analysis was skipped because the application violates bank policy ({result.rejection_reasons.join(', ')}).
+            </p>
+          </motion.div>
         ) : comparisonData ? (
           <ModelComparisonCard
-            xgboost={comparisonData.xgboost}
-            randomForest={comparisonData.random_forest}
-            ensembleAverage={comparisonData.ensemble_average}
+            modelScores={{
+              xgboost: comparisonData.xgboost.probability,
+              random_forest: comparisonData.random_forest.probability,
+              ensemble_average: comparisonData.ensemble_average
+            }}
+          />
+        ) : result && result.model_scores ? (
+          <ModelComparisonCard
+            modelScores={result.model_scores}
           />
         ) : null}
       </div>
