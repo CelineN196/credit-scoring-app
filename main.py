@@ -26,7 +26,7 @@ except Exception as e:
 # 4. Cấu hình CORS for Deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development/debugging
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True,
@@ -34,16 +34,51 @@ app.add_middleware(
 
 # 5. Schema 10 trường chuẩn Phase 2/4
 class CreditData(BaseModel):
-    income: float
-    age: int
-    employment_years: int
-    loan_amount: float
-    loan_term: int
-    credit_history_length: int
-    num_credit_lines: int
-    num_delinquencies: int
-    debt_to_income_ratio: float
-    savings_balance: float
+    # original fields with default values
+    income: float = 0.0
+    age: int = 0
+    employment_years: int = 0
+    loan_amount: float = 0.0
+    loan_term: int = 0
+    credit_history_length: int = 0
+    num_credit_lines: int = 0
+    num_delinquencies: int = 0
+    debt_to_income_ratio: float = 0.0
+    savings_balance: float = 0.0
+
+    # Kaggle dataset fields with default values
+    DebtRatio: float | None = None
+    MonthlyIncome: float | None = None
+    NumberOfOpenCreditLinesAndLoans: int | None = None
+    NumberOfTime30_59DaysPastDueNotWorse: int | None = None
+    NumberOfTime60_89DaysPastDueNotWorse: int | None = None
+    NumberOfTimes90DaysLate: int | None = None
+    NumberRealEstateLoansOrLines: int | None = None
+    NumberOfDependents: int | None = None
+
+    model_config = {"extra": "allow"}
+
+def normalize_data(data: CreditData) -> CreditData:
+    """Normalize Kaggle fields to standard fields if standard fields are empty"""
+    if data.income == 0 and data.MonthlyIncome is not None:
+        data.income = data.MonthlyIncome * 12
+    if data.debt_to_income_ratio == 0 and data.DebtRatio is not None:
+        data.debt_to_income_ratio = data.DebtRatio
+    if data.num_credit_lines == 0 and data.NumberOfOpenCreditLinesAndLoans is not None:
+        data.num_credit_lines = data.NumberOfOpenCreditLinesAndLoans
+    
+    # Combine late payments as delinquencies
+    late = 0
+    if data.NumberOfTime30_59DaysPastDueNotWorse is not None:
+        late += data.NumberOfTime30_59DaysPastDueNotWorse
+    if data.NumberOfTime60_89DaysPastDueNotWorse is not None:
+        late += data.NumberOfTime60_89DaysPastDueNotWorse
+    if data.NumberOfTimes90DaysLate is not None:
+        late += data.NumberOfTimes90DaysLate
+    if late > 0:
+        data.num_delinquencies = late
+    
+    return data
 
 @app.get("/health")
 async def health_check():
@@ -54,11 +89,14 @@ async def health_check():
 @app.post("/predict")
 async def predict(data: CreditData):
     try:
+        # Normalize Kaggle fields to standard fields
+        data = normalize_data(data)
+        
         # ===== HARD RULES (Expert System - Applied First) =====
         rejection_reasons = []
         hard_reject = False
-        risk_level = "Low"  # Default
-        approved = True     # Default
+        risk_level = "Low"
+        approved = True
 
         # Age limit hard rule
         if data.age > 75:
@@ -71,7 +109,7 @@ async def predict(data: CreditData):
         if data.debt_to_income_ratio > 0.5:
             hard_reject = True
             rejection_reasons.append("🚩 High DTI")
-            if risk_level != "Extreme":  # Don't override age-based extreme
+            if risk_level != "Extreme":
                 risk_level = "High"
             approved = False
 
@@ -79,7 +117,7 @@ async def predict(data: CreditData):
         if data.num_delinquencies > 2:
             hard_reject = True
             rejection_reasons.append("🚩 Poor Credit History")
-            if risk_level not in ["Extreme", "High"]:  # Don't override higher risks
+            if risk_level not in ["Extreme", "High"]:
                 risk_level = "High"
             approved = False
 
@@ -87,9 +125,8 @@ async def predict(data: CreditData):
         if hard_reject:
             recommendation = "Application rejected due to: " + ", ".join([r.replace("🚩 ", "") for r in rejection_reasons])
 
-            # Safe zone suggestion for loan amount if rejected due to DTI
             if data.debt_to_income_ratio > 0.5:
-                max_safe_loan = data.income * 0.3  # Suggest loan that keeps DTI under 30%
+                max_safe_loan = data.income * 0.3
                 recommendation += f" 💡 Safe Zone: Consider reducing loan amount to ${max_safe_loan:,.0f} or less for better approval chances."
 
             return {
@@ -101,7 +138,8 @@ async def predict(data: CreditData):
             }
 
         # ===== ML MODEL PREDICTION =====
-        input_df = pd.DataFrame([data.model_dump()])
+        payload = data.model_dump(exclude_none=True)
+        input_df = pd.DataFrame([payload])
         prob = float(model.predict_proba(input_df)[0][1])
 
         # ===== ENHANCED SCORING LOGIC =====
@@ -111,7 +149,7 @@ async def predict(data: CreditData):
         # Disposable income calculation and penalty
         disposable_income = data.income * (1 - data.debt_to_income_ratio)
         if disposable_income < 1000:
-            final_score *= 0.8  # Reduce score by 20%
+            final_score *= 0.8
             risk_adjustments.append("🚩 Low Disposable Income")
 
         # Employment stability check
@@ -129,7 +167,7 @@ async def predict(data: CreditData):
         else:
             risk_level = "High"
 
-        # Override risk level for short employment (makes it harder to get Low risk)
+        # Override risk level for short employment
         if "🚩 Short Employment" in risk_adjustments and risk_level == "Low":
             risk_level = "Medium"
 
@@ -172,6 +210,6 @@ async def predict(data: CreditData):
 
 @app.get("/applications")
 async def get_applications(limit: int = 10, offset: int = 0):
-    if not supabase: return []
-    # Lấy lịch sử với pagination
+    if not supabase:
+        return []
     return supabase.table("applications").select("*").order("created_at", desc=True).range(offset, offset + limit - 1).execute().data
