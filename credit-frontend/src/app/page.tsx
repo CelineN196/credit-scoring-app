@@ -1,21 +1,53 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { animate } from 'framer-motion';
 
 export default function Home() {
   const [formData, setFormData] = useState({
-    income: '50000', age: '30', employment_years: '5', loan_amount: '10000', loan_term: '12',
-    credit_history_length: '2', num_credit_lines: '1', num_delinquencies: '0',
-    debt_to_income_ratio: '0.2', savings_balance: '1000'
+    DebtRatio: '0.2',
+    MonthlyIncome: '4000',
+    NumberOfOpenCreditLinesAndLoans: '5',
+    NumberOfTime30_59DaysPastDueNotWorse: '0',
+    NumberOfTime60_89DaysPastDueNotWorse: '0',
+    NumberOfTimes90DaysLate: '0',
+    NumberRealEstateLoansOrLines: '1',
+    NumberOfDependents: '0',
+    age: '35',
+    employment_years: '5',
+    loan_amount: '15000',
+    loan_term: '24'
   });
   const [result, setResult] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
+  const [displayScore, setDisplayScore] = useState(0);  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // animate score when a new result arrives
+  useEffect(() => {
+    if (result) {
+      const endValue = result.approval_score * 100;
+      const controls = animate(0, endValue, {
+        duration: 1,
+        onUpdate(value) {
+          setDisplayScore(value);
+        }
+      });
+      return () => controls.stop();
+    }
+  }, [result]);
   const quickFill = () => setFormData({
-    income: '85000', age: '35', employment_years: '10', loan_amount: '20000', loan_term: '24',
-    credit_history_length: '8', num_credit_lines: '4', num_delinquencies: '0',
-    debt_to_income_ratio: '0.1', savings_balance: '15000'
+    DebtRatio: '0.1',
+    MonthlyIncome: '7000',
+    NumberOfOpenCreditLinesAndLoans: '6',
+    NumberOfTime30_59DaysPastDueNotWorse: '0',
+    NumberOfTime60_89DaysPastDueNotWorse: '0',
+    NumberOfTimes90DaysLate: '0',
+    NumberRealEstateLoansOrLines: '1',
+    NumberOfDependents: '1',
+    age: '30',
+    employment_years: '8',
+    loan_amount: '10000',
+    loan_term: '12'
   });
 
   const handleSubmit = async (e: any) => {
@@ -69,7 +101,9 @@ export default function Home() {
             </div>
             {Object.keys(formData).map((key) => (
               <div key={key} className="space-y-1">
-                <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">{key.replace(/_/g, ' ')}</label>
+                <label className="text-[9px] font-bold text-slate-500 uppercase ml-1">
+                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
+                </label>
                 <input required type="number" step="any" value={(formData as any)[key]} 
                   onChange={(e) => setFormData({...formData, [key]: e.target.value})}
                   className="w-full bg-[#020617] border border-slate-700 rounded-xl p-3 text-sm outline-none focus:border-indigo-500 transition-all font-bold" />
@@ -110,7 +144,7 @@ export default function Home() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-5xl font-black italic">{(result.approval_score * 100).toFixed(0)}%</span>
+                    <span className="text-5xl font-black italic">{displayScore.toFixed(0)}%</span>
                     <span className="text-[10px] font-bold opacity-50 uppercase tracking-widest">Credit Score</span>
                   </div>
                 </div>

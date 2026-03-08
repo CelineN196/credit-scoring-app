@@ -5,6 +5,7 @@ const config: Config = {
     "./src/**/*.{js,ts,jsx,tsx,mdx}", // Dòng này cực kỳ quan trọng để nhận diện class
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {},
   },
