@@ -88,7 +88,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen text-slate-900 dark:text-white p-6 md:p-12 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#05070a] text-slate-900 dark:text-slate-100 p-6 md:p-12 font-sans">
       <div className="max-w-5xl mx-auto space-y-10">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-black tracking-tighter italic text-indigo-600 dark:text-indigo-400 uppercase">Credit Analyzer</h1>
@@ -109,16 +109,16 @@ export default function Home() {
                 </label>
                 <input required type="number" step="any" value={(formData as any)[key]} 
                   onChange={(e) => setFormData({...formData, [key]: e.target.value})}
-                  className="w-full bg-white dark:bg-[#020617] border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-sm outline-none focus:border-indigo-500 transition-all font-bold" />
+                  className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm outline-none focus:border-indigo-500 transition-all font-bold" />
               </div>
             ))}
             <button 
               disabled={loading}
-              className="col-span-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed py-4 rounded-xl font-black text-lg mt-2 transition-transform active:scale-95 shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-2"
+              className="col-span-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed py-4 rounded-xl font-black text-white dark:text-white mt-2 transition-transform active:scale-95 shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-slate-900 dark:border-white border-t-transparent rounded-full animate-spin"></div>
                   ANALYZING...
                 </>
               ) : (
@@ -135,7 +135,7 @@ export default function Home() {
           {/* Cột hiển thị Result với Gauge Chart (F10) */}
           <div className="h-full">
             {result ? (
-              <div className={`p-10 rounded-[2.5rem] border-2 text-center h-full flex flex-col items-center justify-center transition-all duration-700 ${result.approved ? 'bg-emerald-500/5 border-emerald-500/50 shadow-[0_0_40px_rgba(16,185,129,0.1)]' : 'bg-rose-500/5 border-rose-500/50 shadow-[0_0_40px_rgba(244,63,94,0.1)]'}`}>
+              <div className={`p-10 rounded-[2.5rem] border-2 text-center h-full flex flex-col items-center justify-center transition-all duration-700 backdrop-blur-sm ${result.approved ? 'bg-emerald-500/5 border-emerald-500/50 shadow-[0_0_40px_rgba(16,185,129,0.1)]' : 'bg-rose-500/5 border-rose-500/50 shadow-[0_0_40px_rgba(244,63,94,0.1)]'}`}>
                 <div className="relative w-48 h-48 mb-6">
                   <svg className="w-full h-full transform -rotate-90">
                     <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-slate-300 dark:text-slate-800" />
@@ -147,11 +147,11 @@ export default function Home() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-5xl font-black italic">{displayScore.toFixed(0)}%</span>
-                    <span className="text-[10px] font-bold opacity-50 uppercase tracking-widest">Credit Score</span>
+                    <span className="text-5xl font-black italic text-slate-900 dark:text-white">{displayScore.toFixed(0)}%</span>
+                    <span className="text-[10px] font-bold opacity-50 uppercase tracking-widest text-slate-600 dark:text-slate-400">Credit Score</span>
                   </div>
                 </div>
-                <h3 className={`text-4xl font-black italic tracking-tighter ${result.approved ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <h3 className={`text-4xl font-black italic tracking-tighter ${result.approved ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   {result.approved ? 'PASSED' : 'REJECTED'}
                 </h3>
                 <div className="mt-4 px-4 py-1 rounded-full bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px] font-black uppercase tracking-[0.2em]">
