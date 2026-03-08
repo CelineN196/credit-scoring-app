@@ -54,9 +54,14 @@ async def load_models():
         print(f"⚠️  Only {models_loaded}/2 models loaded. Server will continue but predictions may be limited.")
 
 # 4. Cấu hình CORS for Deployment
+origins = [
+    "http://localhost:3000",
+    "https://credit-scoring-app.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True,
