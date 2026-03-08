@@ -29,10 +29,10 @@ export default function RootLayout({
     // Thêm suppressHydrationWarning để tránh lỗi báo đỏ ở console trình duyệt
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-[#020617] text-slate-900 dark:text-white min-h-screen transition-colors duration-300`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300`}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <nav className="bg-white dark:bg-[#020617] border-b border-slate-200 dark:border-slate-800 px-6 py-4">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <div className="flex items-center space-x-8">
                 <Link href="/" className="text-2xl font-black tracking-tighter italic text-indigo-600 dark:text-indigo-400 uppercase">
