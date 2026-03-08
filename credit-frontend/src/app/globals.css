@@ -1,13 +1,3 @@
 @import "tailwindcss";
 
-/* Thiết lập màu nền tối và font chữ chuẩn cho toàn bộ trang */
-:root {
-  --background: #020617;
-  --foreground: #f8fafc;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: sans-serif;
-}
+/* All styling is now handled by Tailwind CSS classes - no CSS variables needed */
