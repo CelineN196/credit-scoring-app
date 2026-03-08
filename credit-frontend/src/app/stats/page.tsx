@@ -11,9 +11,10 @@ export default function Stats() {
     try {
       setLoading(true);
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-      const res = await fetch(`${apiUrl}/applications`);
+      const res = await fetch(`${apiUrl}/applications?limit=100`);
       if (!res.ok) throw new Error('Failed to fetch data');
       const applications = await res.json();
+      console.log('Stats Data Received:', applications.length);
       setData(applications);
       setError(null);
     } catch (err: any) {

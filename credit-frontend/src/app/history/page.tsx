@@ -23,9 +23,13 @@ export default function History() {
       const { data: apps, error } = await supabase
         .from('applications')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(1000);
       
-      if (apps) setData(apps);
+      if (apps) {
+        console.log('History Data Received:', apps.length);
+        setData(apps);
+      }
       if (error) console.error("Lỗi Supabase:", error.message);
     };
     fetchData();
